@@ -1,4 +1,4 @@
-# ChatApp
+# MeridianChat
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.9.
 
@@ -11,6 +11,24 @@ ng serve
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+
+### API base URL via environment variable
+
+The frontend reads API base URL from `NG_APP_API_BASE_URL`.
+
+Create a local env file before starting the app:
+
+```bash
+cp .env.example .env
+```
+
+Then set:
+
+```bash
+NG_APP_API_BASE_URL=/api
+```
+
+For local development, keep `/api` so Angular proxy routes to backend. For deployed frontend, set a full URL like `https://api.example.com/api`.
 
 ## Code scaffolding
 

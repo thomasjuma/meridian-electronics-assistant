@@ -39,6 +39,29 @@ resource "aws_s3_bucket_ownership_controls" "memory" {
   }
 }
 
+# S3 bucket for Lambda deployment artifacts
+resource "aws_s3_bucket" "lambda_artifacts" {
+  bucket = "${local.name_prefix}-lambda-artifacts-${data.aws_caller_identity.current.account_id}"
+  tags   = local.common_tags
+}
+
+resource "aws_s3_bucket_public_access_block" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
 # S3 bucket for frontend static website
 resource "aws_s3_bucket" "frontend" {
   bucket = "${local.name_prefix}-frontend-${data.aws_caller_identity.current.account_id}"
@@ -119,9 +142,17 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
   role       = aws_iam_role.lambda_role.name
 }
 
+resource "aws_s3_object" "lambda_package" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+  key    = "lambda/${local.name_prefix}-${filemd5("${path.module}/../backend/lambda-deployment.zip")}.zip"
+  source = "${path.module}/../backend/lambda-deployment.zip"
+  etag   = filemd5("${path.module}/../backend/lambda-deployment.zip")
+}
+
 # Lambda function
 resource "aws_lambda_function" "api" {
-  filename         = "${path.module}/../backend/lambda-deployment.zip"
+  s3_bucket        = aws_s3_bucket.lambda_artifacts.id
+  s3_key           = aws_s3_object.lambda_package.key
   function_name    = "${local.name_prefix}-api"
   role             = aws_iam_role.lambda_role.arn
   handler          = "lambda_handler.handler"
@@ -141,8 +172,8 @@ resource "aws_lambda_function" "api" {
     }
   }
 
-  # Ensure Lambda waits for the distribution to exist
-  depends_on = [aws_cloudfront_distribution.main]
+  # Ensure Lambda waits for the distribution and package object to exist
+  depends_on = [aws_cloudfront_distribution.main, aws_s3_object.lambda_package]
 }
 
 # API Gateway HTTP API
@@ -209,7 +240,7 @@ resource "aws_lambda_permission" "api_gw" {
 # CloudFront distribution
 resource "aws_cloudfront_distribution" "main" {
   aliases = local.aliases
-  
+
   viewer_certificate {
     acm_certificate_arn            = var.use_custom_domain ? aws_acm_certificate.site[0].arn : null
     cloudfront_default_certificate = var.use_custom_domain ? false : true

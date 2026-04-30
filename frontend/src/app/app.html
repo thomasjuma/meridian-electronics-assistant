@@ -1,24 +1,24 @@
 <main class="chat-page">
   <section class="chat-shell">
     <header class="chat-header">
-      <h1>FastAPI Chat</h1>
-      <p>Connected to <code>POST /chat</code> on the backend.</p>
+      <h1>Meridian Support Assistant</h1>
+      <p>Connected to <code>POST /api/chat</code> on your backend.</p>
       @if (sessionId) {
         <small>Session: {{ sessionId }}</small>
       }
     </header>
 
-    <section class="chat-messages" aria-live="polite">
+    <section class="chat-messages" aria-live="polite" aria-label="Chat messages">
       @for (message of messages; track $index) {
         <article class="message" [class.user]="message.role === 'user'">
           <span class="badge">{{ message.role === 'user' ? 'You' : 'Assistant' }}</span>
-          <p>{{ message.content }}</p>
+          <div class="message-body" [innerHTML]="renderMarkdown(message.content)"></div>
         </article>
       }
       @if (isLoading) {
         <article class="message">
           <span class="badge">Assistant</span>
-          <p>Thinking...</p>
+          <div class="message-body" [innerHTML]="renderMarkdown('Thinking...')"></div>
         </article>
       }
     </section>
@@ -31,8 +31,8 @@
       <textarea
         name="prompt"
         [(ngModel)]="prompt"
-        [disabled]="isLoading"
-        placeholder="Type your message..."
+        (keydown)="sendOnEnter($event)"
+        placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
         rows="3"
       ></textarea>
       <button type="submit" [disabled]="isLoading || !prompt.trim()">Send</button>
