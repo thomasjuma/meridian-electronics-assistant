@@ -3,15 +3,33 @@ param(
     [string]$ProjectName = "meridian"
 )
 $ErrorActionPreference = "Stop"
+$rootDir = Split-Path $PSScriptRoot -Parent
+$backendDir = Join-Path $rootDir "backend"
+$frontendDir = Join-Path $rootDir "frontend"
+$lambdaPackage = Join-Path $backendDir "lambda-deployment.zip"
 
 Write-Host "Deploying $ProjectName to $Environment ..." -ForegroundColor Green
 
-# 1. Build Lambda package
-Set-Location (Split-Path $PSScriptRoot -Parent)   # project root
-Write-Host "Building Lambda package..." -ForegroundColor Yellow
-Set-Location backend
-uv run deploy.py
-Set-Location ..
+if ($Environment -notin @("dev", "test", "prod")) {
+    throw "Invalid environment '$Environment'. Allowed values: dev, test, prod."
+}
+
+# 1. Build backend Lambda package
+Set-Location $rootDir
+Write-Host "Preparing backend package..." -ForegroundColor Yellow
+if (Test-Path (Join-Path $backendDir "deploy.py")) {
+    Set-Location $backendDir
+    uv run deploy.py
+    Set-Location $rootDir
+} else {
+    Write-Host "backend/deploy.py not found. Creating lambda package from source files..." -ForegroundColor Yellow
+    if (Test-Path $lambdaPackage) {
+        Remove-Item $lambdaPackage -Force
+    }
+    Set-Location $backendDir
+    Compress-Archive -Path @("app", "main.py", "pyproject.toml", "uv.lock") -DestinationPath $lambdaPackage -Force
+    Set-Location $rootDir
+}
 
 # 2. Terraform workspace & apply
 Set-Location terraform
@@ -41,15 +59,18 @@ $FrontendBucket = terraform output -raw s3_frontend_bucket
 try { $CustomUrl = terraform output -raw custom_domain_url } catch { $CustomUrl = "" }
 
 # 3. Build + deploy frontend
-Set-Location ..\frontend
+Set-Location $frontendDir
 
-# Create production environment file with API URL
+# Create environment files with deployed API URL
 Write-Host "Setting API URL for production..." -ForegroundColor Yellow
-"NEXT_PUBLIC_API_URL=$ApiUrl" | Out-File .env.production -Encoding utf8
+$ApiBaseUrl = "$($ApiUrl.TrimEnd('/'))/api"
+"NG_APP_API_BASE_URL=$ApiBaseUrl" | Out-File .env.production -Encoding utf8
+"NG_APP_API_BASE_URL=$ApiBaseUrl" | Out-File .env -Encoding utf8
 
 npm install
+$env:NG_APP_API_BASE_URL = $ApiBaseUrl
 npm run build
-aws s3 sync .\out "s3://$FrontendBucket/" --delete
+aws s3 sync .\dist\meridian-chat\browser "s3://$FrontendBucket/" --delete
 Set-Location ..
 
 # 4. Final summary

@@ -2,11 +2,12 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
-    "chat-app": {
+    "meridian-chat": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -24,7 +25,9 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css"]
+            "styles": [
+              "src/styles.css"
+            ]
           },
           "configurations": {
             "production": {
@@ -57,10 +60,10 @@
           },
           "configurations": {
             "production": {
-              "buildTarget": "chat-app:build:production"
+              "buildTarget": "meridian-chat:build:production"
             },
             "development": {
-              "buildTarget": "chat-app:build:development"
+              "buildTarget": "meridian-chat:build:development"
             }
           },
           "defaultConfiguration": "development"
