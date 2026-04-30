@@ -1,4 +1,4 @@
-project_name             = "twin"
+project_name             = "meridian"
 environment              = "dev"
 bedrock_model_id         = "global.amazon.nova-2-lite-v1:0"
 lambda_timeout           = 60

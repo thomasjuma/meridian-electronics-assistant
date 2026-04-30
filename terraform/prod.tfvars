@@ -1,4 +1,4 @@
-project_name             = "twin"
+project_name             = "meridian"
 environment              = "prod"
 bedrock_model_id         = "anthropic.claude-opus-4-6-v1"
 lambda_timeout           = 60
