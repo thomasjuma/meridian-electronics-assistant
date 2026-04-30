@@ -1,0 +1,41 @@
+<main class="chat-page">
+  <section class="chat-shell">
+    <header class="chat-header">
+      <h1>FastAPI Chat</h1>
+      <p>Connected to <code>POST /chat</code> on the backend.</p>
+      @if (sessionId) {
+        <small>Session: {{ sessionId }}</small>
+      }
+    </header>
+
+    <section class="chat-messages" aria-live="polite">
+      @for (message of messages; track $index) {
+        <article class="message" [class.user]="message.role === 'user'">
+          <span class="badge">{{ message.role === 'user' ? 'You' : 'Assistant' }}</span>
+          <p>{{ message.content }}</p>
+        </article>
+      }
+      @if (isLoading) {
+        <article class="message">
+          <span class="badge">Assistant</span>
+          <p>Thinking...</p>
+        </article>
+      }
+    </section>
+
+    @if (errorMessage) {
+      <p class="error">{{ errorMessage }}</p>
+    }
+
+    <form class="chat-form" (ngSubmit)="sendMessage()">
+      <textarea
+        name="prompt"
+        [(ngModel)]="prompt"
+        [disabled]="isLoading"
+        placeholder="Type your message..."
+        rows="3"
+      ></textarea>
+      <button type="submit" [disabled]="isLoading || !prompt.trim()">Send</button>
+    </form>
+  </section>
+</main>
