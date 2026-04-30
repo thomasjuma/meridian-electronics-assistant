@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.chat-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: #f3f4f6;
+}
+
+.chat-shell {
+  width: min(900px, 100%);
+  height: min(80vh, 720px);
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #d4d4d8;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.chat-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.chat-header p,
+.chat-header small {
+  margin: 0.3rem 0 0;
+  color: #52525b;
+}
+
+.chat-messages {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.25rem;
+}
+
+.message {
+  max-width: 80%;
+  border-radius: 10px;
+  background: #f4f4f5;
+  padding: 0.65rem 0.8rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.message.user {
+  margin-left: auto;
+  background: #dbeafe;
+}
+
+.badge {
+  font-size: 0.75rem;
+  color: #3f3f46;
+  font-weight: 600;
+}
+
+.message p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 3rem;
+  max-height: 10rem;
+  border: 1px solid #a1a1aa;
+  border-radius: 8px;
+  padding: 0.6rem;
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  padding: 0.7rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  background: #93c5fd;
+}
+
+.error {
+  margin: 0;
+  color: #b91c1c;
+}
