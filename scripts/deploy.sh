@@ -39,7 +39,6 @@ cd "$ROOT_DIR/terraform"
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 AWS_REGION=${DEFAULT_AWS_REGION:-eu-west-1}
 TF_STATE_BUCKET="meridian-terraform-state-${AWS_ACCOUNT_ID}"
-TF_LOCK_TABLE="meridian-terraform-locks"
 
 echo "🧱 Ensuring Terraform backend resources exist..."
 if ! aws s3api head-bucket --bucket "$TF_STATE_BUCKET" 2>/dev/null; then
@@ -61,21 +60,11 @@ if ! aws s3api head-bucket --bucket "$TF_STATE_BUCKET" 2>/dev/null; then
     --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}' >/dev/null
 fi
 
-if ! aws dynamodb describe-table --table-name "$TF_LOCK_TABLE" --region "$AWS_REGION" >/dev/null 2>&1; then
-  echo "  Creating DynamoDB lock table: $TF_LOCK_TABLE"
-  aws dynamodb create-table \
-    --table-name "$TF_LOCK_TABLE" \
-    --attribute-definitions AttributeName=LockID,AttributeType=S \
-    --key-schema AttributeName=LockID,KeyType=HASH \
-    --billing-mode PAY_PER_REQUEST \
-    --region "$AWS_REGION" >/dev/null
-fi
-
 terraform init -input=false \
   -backend-config="bucket=${TF_STATE_BUCKET}" \
   -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
   -backend-config="region=${AWS_REGION}" \
-  -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
+  -backend-config="use_lockfile=true" \
   -backend-config="encrypt=true"
 
 if ! terraform workspace list | grep -q "$ENVIRONMENT"; then
@@ -94,9 +83,9 @@ fi
 echo "🎯 Applying Terraform..."
 "${TF_APPLY_CMD[@]}"
 
-API_URL=$(terraform output -raw api_gateway_url)
-FRONTEND_BUCKET=$(terraform output -raw s3_frontend_bucket)
-CUSTOM_URL=$(terraform output -raw custom_domain_url 2>/dev/null || true)
+API_URL=$(terraform output -raw api_gateway_url | tr -d '\r\n')
+FRONTEND_BUCKET=$(terraform output -raw s3_frontend_bucket | tr -d '\r\n')
+CUSTOM_URL=$(terraform output -raw custom_domain_url 2>/dev/null | tr -d '\r\n' || true)
 
 # 3. Build + deploy frontend
 cd "$FRONTEND_DIR"
