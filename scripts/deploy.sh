@@ -60,7 +60,7 @@ if ! aws s3api head-bucket --bucket "$TF_STATE_BUCKET" 2>/dev/null; then
     --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}' >/dev/null
 fi
 
-terraform init -input=false \
+terraform init -reconfigure -input=false \
   -backend-config="bucket=${TF_STATE_BUCKET}" \
   -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
   -backend-config="region=${AWS_REGION}" \
@@ -93,12 +93,22 @@ cd "$FRONTEND_DIR"
 # Create environment files with deployed API URL
 echo "📝 Setting API URL for production..."
 API_BASE_URL="${API_URL%/}/api"
+cat > src/environments/environment.ts <<EOF
+export const environment = {
+  apiBaseUrl: '${API_BASE_URL}',
+};
+EOF
 echo "NG_APP_API_BASE_URL=${API_BASE_URL}" > .env.production
 echo "NG_APP_API_BASE_URL=${API_BASE_URL}" > .env
 
 npm install
 NG_APP_API_BASE_URL="${API_BASE_URL}" npm run build
 aws s3 sync ./dist/meridian-chat/browser "s3://$FRONTEND_BUCKET/" --delete
+
+echo "🔄 Invalidating CloudFront cache..."
+DISTRIBUTION_ID=$(terraform -chdir="$ROOT_DIR/terraform" output -raw cloudfront_distribution_id | tr -d '\r\n')
+aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*" >/dev/null
+
 cd ..
 
 # 4. Final messages

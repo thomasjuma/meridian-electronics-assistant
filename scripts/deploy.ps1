@@ -35,7 +35,7 @@ if (Test-Path (Join-Path $backendDir "deploy.py")) {
 Set-Location terraform
 $awsAccountId = aws sts get-caller-identity --query Account --output text
 $awsRegion = if ($env:DEFAULT_AWS_REGION) { $env:DEFAULT_AWS_REGION } else { "us-east-1" }
-terraform init -input=false `
+terraform init -reconfigure -input=false `
   -backend-config="bucket=meridian-terraform-state-$awsAccountId" `
   -backend-config="key=$Environment/terraform.tfstate" `
   -backend-config="region=$awsRegion" `
@@ -64,6 +64,11 @@ Set-Location $frontendDir
 # Create environment files with deployed API URL
 Write-Host "Setting API URL for production..." -ForegroundColor Yellow
 $ApiBaseUrl = "$($ApiUrl.TrimEnd('/'))/api"
+@"
+export const environment = {
+  apiBaseUrl: '$ApiBaseUrl',
+};
+"@ | Out-File src/environments/environment.ts -Encoding utf8
 "NG_APP_API_BASE_URL=$ApiBaseUrl" | Out-File .env.production -Encoding utf8
 "NG_APP_API_BASE_URL=$ApiBaseUrl" | Out-File .env -Encoding utf8
 
@@ -71,6 +76,11 @@ npm install
 $env:NG_APP_API_BASE_URL = $ApiBaseUrl
 npm run build
 aws s3 sync .\dist\meridian-chat\browser "s3://$FrontendBucket/" --delete
+
+Write-Host "Invalidating CloudFront cache..." -ForegroundColor Yellow
+$DistributionId = (terraform -chdir=terraform output -raw cloudfront_distribution_id).Trim()
+aws cloudfront create-invalidation --distribution-id $DistributionId --paths "/*" | Out-Null
+
 Set-Location ..
 
 # 4. Final summary

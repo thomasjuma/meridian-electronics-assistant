@@ -1,9 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
-const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
-const configuredApiBaseUrl = env?.['NG_APP_API_BASE_URL']?.trim();
+const configuredApiBaseUrl = environment.apiBaseUrl?.trim();
 const apiBaseUrl =
   configuredApiBaseUrl && configuredApiBaseUrl.length > 0
     ? configuredApiBaseUrl.replace(/\/+$/, '')
