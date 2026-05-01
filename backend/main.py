@@ -23,6 +23,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy", 
+        "use_s3": "USE_S3",
+        "bedrock_model": "BEDROCK_MODEL_ID",
+    }
+
 # @app.on_event("startup")
 # async def startup_event():
 #     await settings.load_config()

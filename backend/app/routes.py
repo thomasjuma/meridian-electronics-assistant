@@ -54,12 +54,3 @@ async def get_conversation(session_id: str):
         return {"session_id": session_id, "messages": conversation}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/health")
-async def health():
-    return {
-        "status": "healthy", 
-        "use_s3": "USE_S3",
-        "bedrock_model": "BEDROCK_MODEL_ID",
-    }

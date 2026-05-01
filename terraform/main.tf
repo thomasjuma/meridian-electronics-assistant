@@ -170,6 +170,7 @@ resource "aws_lambda_function" "api" {
   source_code_hash = local.lambda_source_code_hash
   runtime          = "python3.12"
   architectures    = ["x86_64"]
+  memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
   tags             = local.common_tags
 
