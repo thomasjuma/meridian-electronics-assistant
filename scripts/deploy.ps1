@@ -35,6 +35,7 @@ if (Test-Path (Join-Path $backendDir "deploy.py")) {
 Set-Location terraform
 $awsAccountId = aws sts get-caller-identity --query Account --output text
 $awsRegion = if ($env:DEFAULT_AWS_REGION) { $env:DEFAULT_AWS_REGION } else { "us-east-1" }
+
 terraform init -reconfigure -input=false `
   -backend-config="bucket=meridian-terraform-state-$awsAccountId" `
   -backend-config="key=$Environment/terraform.tfstate" `

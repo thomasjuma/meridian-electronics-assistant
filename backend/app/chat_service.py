@@ -1,9 +1,9 @@
 import os
 import json
 from typing import List, Dict
+from openai import AsyncOpenAI
 from botocore.exceptions import ClientError
-from botocore.client import Config
-from botocore.exceptions import ClientError
+import boto3
 
 USE_S3 = os.getenv("USE_S3", "false").lower() == "true"
 S3_BUCKET = os.getenv("S3_BUCKET", "")
@@ -17,6 +17,7 @@ def load_conversation(session_id: str) -> List[Dict]:
     """Load conversation history from storage"""
     if USE_S3:
         try:
+            s3_client = boto3.client("s3")
             response = s3_client.get_object(Bucket=S3_BUCKET, Key=get_memory_path(session_id))
             return json.loads(response["Body"].read().decode("utf-8"))
         except ClientError as e:
@@ -36,12 +37,18 @@ def load_conversation(session_id: str) -> List[Dict]:
 def save_conversation(session_id: str, messages: List[Dict]):
     """Save conversation history to storage"""
     if USE_S3:
-        s3_client.put_object(
+        s3_client = boto3.client("s3")
+        try:
+            s3_client.put_object(
             Bucket=S3_BUCKET,
             Key=get_memory_path(session_id),
             Body=json.dumps(messages, indent=2),
             ContentType="application/json",
         )
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "NoSuchBucket":
+                raise ValueError(f"Bucket {S3_BUCKET} does not exist")
+            raise
     else:
         # Local file storage
         print(f"Saving conversation to {MEMORY_DIR}")

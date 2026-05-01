@@ -221,22 +221,10 @@ resource "aws_apigatewayv2_integration" "lambda" {
   integration_uri  = aws_lambda_function.api.invoke_arn
 }
 
-# API Gateway Routes
-resource "aws_apigatewayv2_route" "get_root" {
+# API Gateway route proxying all /api/* paths to Lambda.
+resource "aws_apigatewayv2_route" "api_proxy" {
   api_id    = aws_apigatewayv2_api.main.id
-  route_key = "GET /"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
-}
-
-resource "aws_apigatewayv2_route" "post_chat" {
-  api_id    = aws_apigatewayv2_api.main.id
-  route_key = "POST /chat"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
-}
-
-resource "aws_apigatewayv2_route" "get_health" {
-  api_id    = aws_apigatewayv2_api.main.id
-  route_key = "GET /health"
+  route_key = "ANY /api/{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
