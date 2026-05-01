@@ -39,7 +39,7 @@ terraform init -input=false `
   -backend-config="bucket=meridian-terraform-state-$awsAccountId" `
   -backend-config="key=$Environment/terraform.tfstate" `
   -backend-config="region=$awsRegion" `
-  -backend-config="dynamodb_table=meridian-terraform-locks" `
+  -backend-config="use_lockfile=true" `
   -backend-config="encrypt=true"
 
 if (-not (terraform workspace list | Select-String $Environment)) {
@@ -54,9 +54,9 @@ if ($Environment -eq "prod") {
     terraform apply -var="project_name=$ProjectName" -var="environment=$Environment" -auto-approve
 }
 
-$ApiUrl        = terraform output -raw api_gateway_url
-$FrontendBucket = terraform output -raw s3_frontend_bucket
-try { $CustomUrl = terraform output -raw custom_domain_url } catch { $CustomUrl = "" }
+$ApiUrl         = (terraform output -raw api_gateway_url).Trim()
+$FrontendBucket = (terraform output -raw s3_frontend_bucket).Trim()
+try { $CustomUrl = (terraform output -raw custom_domain_url).Trim() } catch { $CustomUrl = "" }
 
 # 3. Build + deploy frontend
 Set-Location $frontendDir

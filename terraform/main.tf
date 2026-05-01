@@ -7,7 +7,11 @@ locals {
     "www.${var.root_domain}"
   ] : []
 
-  name_prefix = "${var.project_name}-${var.environment}"
+  name_prefix             = "${var.project_name}-${var.environment}"
+  lambda_package_path     = "${path.module}/../backend/lambda-deployment.zip"
+  lambda_package_exists   = fileexists(local.lambda_package_path)
+  lambda_package_hash     = local.lambda_package_exists ? filemd5(local.lambda_package_path) : "missing-package"
+  lambda_source_code_hash = local.lambda_package_exists ? filebase64sha256(local.lambda_package_path) : null
 
   common_tags = {
     Project     = var.project_name
@@ -144,9 +148,16 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
 
 resource "aws_s3_object" "lambda_package" {
   bucket = aws_s3_bucket.lambda_artifacts.id
-  key    = "lambda/${local.name_prefix}-${filemd5("${path.module}/../backend/lambda-deployment.zip")}.zip"
-  source = "${path.module}/../backend/lambda-deployment.zip"
-  etag   = filemd5("${path.module}/../backend/lambda-deployment.zip")
+  key    = "lambda/${local.name_prefix}-${local.lambda_package_hash}.zip"
+  source = local.lambda_package_path
+  etag   = local.lambda_package_hash
+
+  lifecycle {
+    precondition {
+      condition     = local.lambda_package_exists
+      error_message = "Missing backend/lambda-deployment.zip. Run `uv run deploy.py` in `backend` or use `./scripts/deploy.sh` first."
+    }
+  }
 }
 
 # Lambda function
@@ -156,7 +167,7 @@ resource "aws_lambda_function" "api" {
   function_name    = "${local.name_prefix}-api"
   role             = aws_iam_role.lambda_role.arn
   handler          = "lambda_handler.handler"
-  source_code_hash = filebase64sha256("${path.module}/../backend/lambda-deployment.zip")
+  source_code_hash = local.lambda_source_code_hash
   runtime          = "python3.12"
   architectures    = ["x86_64"]
   timeout          = var.lambda_timeout
